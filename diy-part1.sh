@@ -15,7 +15,9 @@
 
 # 添加feed源（使用echo追加，添加错误检查）
 echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
-echo 'src-git small https://github.com/kenzok8/small' >> feeds.conf.default
-echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
+
+
 # 注释掉可能有问题的源
 # echo 'src-git fichenx https://github.com/fichenx/openwrt-package' >> feeds.conf.default
+# echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
+# echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
