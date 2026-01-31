@@ -190,7 +190,7 @@ jobs:
         WHOAMI: ${{ env.WHOAMI }}
         PACKAGE_SOC: ${{ env.PACKAGE_SOC }}
         OPENWRT_ARMVIRT: openwrt-armvirt/*.tar.gz
-        KERNEL_VERSION_NAME: 5.15.105_6.1.0
+        KERNEL_VERSION_NAME: 5.15.105_6.6.1
        # KERNEL_AUTO_LATEST: false
        # KERNEL_REPO_URL: https://github.com/quanjindeng/Actions_OpenWrt-Amlogic/tree/main/kernel
         
