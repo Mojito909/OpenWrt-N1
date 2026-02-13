@@ -21,9 +21,9 @@ env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
   FEEDS_CONF: iStore/feeds.conf.default
-  CONFIG_FILE: .config-istore
+  CONFIG_FILE: iStore/.config-istore
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2-istore.sh
+  DIY_P2_SH: iStore/diy-part2-istore.sh
   TZ: Asia/Shanghai
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
     - name: 创建编译空间挂载点
       run: |
         sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
+        sudo chown $USER:$USER /workdir
         
     - name: 最大化编译空间
       uses: easimon/maximize-build-space@master
@@ -123,6 +123,9 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        echo "===== 编译目标校验 (.config) ====="
+        grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 50 || true
+        grep -q '^CONFIG_TARGET_armvirt=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 armvirt），请检查配置加载步骤。"; exit 1; }
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -134,11 +137,31 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        make -j$(nproc) || { make -j1 V=sc 2>&1 | tee build.log; exit ${PIPESTATUS[0]}; }
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: 输出失败日志
+      if: failure()
+      run: |
+        cd openwrt
+        echo "===== .config (TARGET 摘要) ====="
+        grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 200 || true
+        echo "===== diffconfig ====="
+        ./scripts/diffconfig.sh || true
+        echo "===== tmp/log 列表 ====="
+        ls -lah tmp/log 2>/dev/null || true
+        latest_log="$(ls -1t tmp/log/* 2>/dev/null | head -n 1 || true)"
+        if [ -n "$latest_log" ]; then
+          echo "===== 最新 tmp/log: $latest_log (末尾400行) ====="
+          tail -n 400 "$latest_log" || true
+        fi
+        if [ -f build.log ]; then
+          echo "===== build.log (末尾400行) ====="
+          tail -n 400 build.log || true
+        fi
         
     - name: 清理磁盘空间
       if: (!cancelled())
