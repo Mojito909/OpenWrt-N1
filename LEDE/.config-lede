@@ -1,7 +1,7 @@
 # Target Config
-CONFIG_TARGET_armvirt=y
-CONFIG_TARGET_armvirt_64=y
-CONFIG_TARGET_armvirt_64_DEVICE_generic=y
+CONFIG_TARGET_armsr=y
+CONFIG_TARGET_armsr_armv8=y
+CONFIG_TARGET_armsr_armv8_DEVICE_generic=y
 
 # 必须：生成 rootfs.tar.gz（Flippy 依赖！）
 CONFIG_TARGET_ROOTFS_TARGZ=y

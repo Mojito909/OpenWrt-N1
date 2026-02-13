@@ -143,7 +143,7 @@ jobs:
         make defconfig
         echo "===== 编译目标校验 (.config) ====="
         grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 50 || true
-        grep -q '^CONFIG_TARGET_armvirt=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 armvirt），请检查配置加载步骤。"; exit 1; }
+        grep -Eq '^CONFIG_TARGET_(armvirt|armsr)=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 ARM 目标：armvirt/armsr），请检查配置加载步骤。"; exit 1; }
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
