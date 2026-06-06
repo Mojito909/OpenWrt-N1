@@ -114,13 +114,7 @@ sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/pac
 # 修复 kmod-oaf 自依赖
 sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packages/kernel/kmod-oaf/Makefile 2>/dev/null || true
 
-# 修复更多循环依赖问题
-# 修复 luci-app-passwall 与 luci-app-ssr-plus 冲突
-sed -i 's|depends on luci-app-passwall|depends on luci-app-passwall \&\& !PACKAGE_luci-app-ssr-plus|g' feeds/small/luci-app-passwall/Makefile 2>/dev/null || true
-sed -i 's|depends on luci-app-ssr-plus|depends on luci-app-ssr-plus \&\& !PACKAGE_luci-app-passwall|g' feeds/small/luci-app-ssr-plus/Makefile 2>/dev/null || true
-
 # 调整部分插件到nas菜单
-sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
 sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
 sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
 sed -i 's/services/nas/g' feeds/luci/applications/luci-app-aria2/root/usr/share/luci/menu.d/luci-app-aria2.json

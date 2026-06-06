@@ -143,7 +143,9 @@ jobs:
       run: |
         cd /workdir/openwrt
         make defconfig
-        grep -E '^CONFIG_PACKAGE_(luci-app-adguardhome|adguardhome|luci-app-alist|alist)=' .config || true
+        grep -E '^CONFIG_PACKAGE_(luci-app-adguardhome|adguardhome|luci-app-alist|alist|luci-app-passwall|xray-core)=' .config || true
+        ./scripts/feeds search luci-app-passwall || true
+        grep -q '^CONFIG_PACKAGE_luci-app-passwall=y' .config || { echo "ERROR: luci-app-passwall 未进入最终 .config，请检查 PassWall feed、依赖和包名。"; exit 1; }
         echo "===== 编译目标校验 (.config) ====="
         grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 50 || true
         grep -Eq '^CONFIG_TARGET_(armvirt|armsr)=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 ARM 目标：armvirt/armsr），请检查配置加载步骤。"; exit 1; }
