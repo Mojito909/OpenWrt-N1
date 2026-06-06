@@ -135,12 +135,15 @@ jobs:
         chmod +x "$GITHUB_WORKSPACE/LEDE/diy-part2.sh"
         cd /workdir/openwrt
         "$GITHUB_WORKSPACE/LEDE/diy-part2.sh"
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
 
     - name: 下载软件包
       run: |
         cd /workdir/openwrt
         make defconfig
+        grep -E '^CONFIG_PACKAGE_(luci-app-adguardhome|adguardhome|luci-app-alist|alist)=' .config || true
         echo "===== 编译目标校验 (.config) ====="
         grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 50 || true
         grep -Eq '^CONFIG_TARGET_(armvirt|armsr)=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 ARM 目标：armvirt/armsr），请检查配置加载步骤。"; exit 1; }

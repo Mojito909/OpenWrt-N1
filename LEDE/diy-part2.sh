@@ -73,12 +73,11 @@ git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-ser
 
 # Add luci-app-amlogic 晶晨宝盒
 rm -rf package/luci-app-amlogic
-git clone https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
-sed -i 's#ARMv8#openwrt_armvirt_v8#g' package/luci-app-amlogic/luci-app-amlogic/root/etc/config/amlogic
-sed -i 's#opt/kernel#kernel#g' package/luci-app-amlogic/luci-app-amlogic/root/etc/config/amlogic
+git clone -b main https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 
 # Add luci-app-adguardhome
-git clone https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
+rm -rf package/luci-app-adguardhome
+git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
 
 # Add luci-app-homeproxy
 rm -rf package/luci-app-homeproxy
@@ -120,14 +119,11 @@ sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packag
 sed -i 's|depends on luci-app-passwall|depends on luci-app-passwall \&\& !PACKAGE_luci-app-ssr-plus|g' feeds/small/luci-app-passwall/Makefile 2>/dev/null || true
 sed -i 's|depends on luci-app-ssr-plus|depends on luci-app-ssr-plus \&\& !PACKAGE_luci-app-passwall|g' feeds/small/luci-app-ssr-plus/Makefile 2>/dev/null || true
 
-
-
 # 调整部分插件到nas菜单
-#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-alist/root/usr/share/luci/menu.d/luci-app-alist.json
-#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
-#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
-#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
-#sed -i 's/services/nas/g' feeds/luci/applications/luci-app-aria2/root/usr/share/luci/menu.d/luci-app-aria2.json
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json
+sed -i 's/services/nas/g' feeds/luci/applications/luci-app-aria2/root/usr/share/luci/menu.d/luci-app-aria2.json
 
 #luci-app-nps（修改nps服务器允许域名）
 sed -i 's/^server.datatype = "ipaddr"/--server.datatype = "ipaddr"/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
@@ -142,7 +138,9 @@ sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/
 #sed -i 's/\[services\]/\[vpn\]/g'  feeds/luci/applications/luci-app-frpc/luasrc/view/frp/frp_status.htm
 
 # Alist
-git clone https://github.com/sbwml/luci-app-alist package/alist
+rm -rf package/luci-app-alist
+git clone --depth=1 https://github.com/sbwml/luci-app-alist package/luci-app-alist
+[ -f package/luci-app-alist/root/usr/share/luci/menu.d/luci-app-alist.json ] && sed -i 's/services/nas/g' package/luci-app-alist/root/usr/share/luci/menu.d/luci-app-alist.json
 
 
 
@@ -153,12 +151,12 @@ sed -i 's/"Aria2 配置"/"Aria2"/g' `grep "Aria2 配置" -rl ./`
 sed -i 's/"实时流量监测"/"流量"/g' `grep "实时流量监测" -rl ./`
 sed -i 's/"Alist 文件列表"/"Alist"/g' `grep "Alist 文件列表" -rl ./`
 sed -i 's/"挂载点"/"磁盘挂载"/g' `grep "挂载点" -rl ./`
-sed -i 's/"Npc"/"Nps内网穿透"/g' `grep "Npc" -rl ./`
-sed -i 's/"Frp 内网穿透"/"Frp内网穿透"/g' `grep "Frp 内网穿透" -rl ./`
+sed -i 's/"Npc"/"Nps穿透"/g' `grep "Npc" -rl ./`
+sed -i 's/"Frp 内网穿透"/"Frp穿透"/g' `grep "Frp 内网穿透" -rl ./`
 sed -i 's/"FTP 服务器"/"FTP服务器"/g' `grep "FTP 服务器" -rl ./`
 sed -i 's/"TTYD 终端"/"终端"/g' `grep "TTYD 终端" -rl ./`
 sed -i 's/"网络存储"/"存储"/g' `grep "网络存储" -rl ./`
-sed -i 's/"NPS 内网穿透客户端"/"NPS内网穿透"/g' `grep "NPS 内网穿透客户端" -rl ./`
+sed -i 's/"NPS 内网穿透客户端"/"NPS穿透"/g' `grep "NPS 内网穿透客户端" -rl ./`
 sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' `grep "ShadowSocksR Plus+" -rl ./`
 
 
@@ -167,11 +165,18 @@ sed -i '/msgstr/s/"带宽监控"/"监视"/g' feeds/luci/applications/luci-app-nl
 sed -i '/msgid "Reboot"/{n;s/msgstr "重启"/msgstr "重启设备"/;}' feeds/luci/modules/luci-base/po/zh-cn/base.po
 
 
-#删除错误
+#删除插件
+rm -rf feeds/luci/applications/luci-app-qbittorrent
 rm -rf feeds/luci/applications/luci-app-qbittorrent
 rm -rf feeds/packages/net/qBittorrent-static
 rm -rf feeds/packages/net/qBittorrent
 rm -rf package/small-package/luci-app-netdata
+rm -rf feeds/luci/applications/luci-app-mia
+rm -rf feeds/small/luci-app-mia
+rm -rf package/feeds/luci/luci-app-mia
+rm -rf package/feeds/small/luci-app-mia
+rm -rf package/small-package/luci-app-mia
+rm -rf package/luci-app-mia
 rm -rf small/{luci-app-bypass,luci-app-fchomo}
 
 # golang版本修复
