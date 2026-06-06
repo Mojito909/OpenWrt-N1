@@ -68,11 +68,6 @@ sed -i '/\* \* \* \/etc\/coremark.sh/d' feeds/packages/utils/coremark/*
 # 在线用户
 git clone --depth=1 https://github.com/danchexiaoyang/luci-app-onliner.git package/luci-app-onliner
 
-## DDNSGO
-rm -rf package/small-package/luci-app-ddns-go
-# 克隆 LUA 分支
-git clone -b LUA https://github.com/sirpdboy/luci-app-ddns-go.git package/ddns-go
-
 # 通知插件
 git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-serverchan
 
@@ -135,10 +130,10 @@ sed -i 's|depends on luci-app-ssr-plus|depends on luci-app-ssr-plus \&\& !PACKAG
 #sed -i 's/services/nas/g' feeds/luci/applications/luci-app-aria2/root/usr/share/luci/menu.d/luci-app-aria2.json
 
 #luci-app-nps（修改nps服务器允许域名）
-#sed -i 's/^server.datatype = "ipaddr"/--server.datatype = "ipaddr"/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
-#sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
-#sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
-#sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
+sed -i 's/^server.datatype = "ipaddr"/--server.datatype = "ipaddr"/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
+sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
+sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
+sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
 
 #luci-app-frpc
 #sed -i 's/"services"/"vpn"/g'  feeds/luci/applications/luci-app-frpc/luasrc/controller/frp.lua
