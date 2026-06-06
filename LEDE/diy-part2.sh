@@ -11,7 +11,10 @@
 #
 
 # TTYD 免登录
-sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+TTYD_CONFIG="feeds/packages/utils/ttyd/files/ttyd.config"
+if [ -f "$TTYD_CONFIG" ]; then
+    sed -i 's|/bin/login|/bin/login -f root|g' "$TTYD_CONFIG"
+fi
 
 # Modify default theme（FROM uci-theme-bootstrap CHANGE TO luci-theme-material）
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' ./feeds/luci/collections/luci/Makefile
@@ -53,6 +56,17 @@ sed -i 's/invalid users = root/#invalid users = root/g' feeds/packages/net/samba
 
 # 修复部分插件自启动脚本丢失可执行权限问题
 sed -i '/exit 0/i\chmod +x /etc/init.d/*' package/lean/default-settings/files/zzz-default-settings
+cat >> package/lean/default-settings/files/zzz-default-settings <<'EOF'
+if command -v uci >/dev/null 2>&1 && [ -f /etc/config/ttyd ]; then
+    uci set ttyd.@ttyd[0].enabled='1'
+    uci set ttyd.@ttyd[0].interface='lan'
+    uci set ttyd.@ttyd[0].port='7681'
+    uci set ttyd.@ttyd[0].command='/bin/login -f root'
+    uci commit ttyd
+    /etc/init.d/ttyd enable >/dev/null 2>&1
+    /etc/init.d/ttyd restart >/dev/null 2>&1
+fi
+EOF
 
 # 修改概览里时间显示为中文数字(F大打包工具会替换)
 sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")) .. " " .. os.date("%X")/g' package/lean/autocore/files/arm/index.htm
