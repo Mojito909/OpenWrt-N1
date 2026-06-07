@@ -10,11 +10,21 @@
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
+#删除插件
+rm -rf feeds/luci/applications/luci-app-qbittorrent
+rm -rf feeds/packages/net/qBittorrent-static
+rm -rf feeds/packages/net/qBittorrent
+rm -rf package/small-package/luci-app-netdata
+rm -rf feeds/luci/applications/luci-app-mia
+rm -rf feeds/small/luci-app-mia
+rm -rf package/feeds/luci/luci-app-mia
+rm -rf package/feeds/small/luci-app-mia
+rm -rf package/small-package/luci-app-mia
+rm -rf package/luci-app-mia
+rm -rf small/{luci-app-bypass,luci-app-fchomo}
+
 # TTYD 免登录
-TTYD_CONFIG="feeds/packages/utils/ttyd/files/ttyd.config"
-if [ -f "$TTYD_CONFIG" ]; then
-    sed -i 's|/bin/login|/bin/login -f root|g' "$TTYD_CONFIG"
-fi
+sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
 
 # Modify default theme（FROM uci-theme-bootstrap CHANGE TO luci-theme-material）
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' ./feeds/luci/collections/luci/Makefile
@@ -48,25 +58,10 @@ fi
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.1.10/g' package/base-files/files/bin/config_generate
 
-# Modify system hostname（FROM OpenWrt CHANGE TO OpenWrt-N1）
-sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
 
 # Replace the default software source
 sed -i 's/invalid users = root/#invalid users = root/g' feeds/packages/net/samba4/files/smb.conf.template
 
-# 修复部分插件自启动脚本丢失可执行权限问题
-sed -i '/exit 0/i\chmod +x /etc/init.d/*' package/lean/default-settings/files/zzz-default-settings
-cat >> package/lean/default-settings/files/zzz-default-settings <<'EOF'
-if command -v uci >/dev/null 2>&1 && [ -f /etc/config/ttyd ]; then
-    uci set ttyd.@ttyd[0].enabled='1'
-    uci set ttyd.@ttyd[0].interface='lan'
-    uci set ttyd.@ttyd[0].port='7681'
-    uci set ttyd.@ttyd[0].command='/bin/login -f root'
-    uci commit ttyd
-    /etc/init.d/ttyd enable >/dev/null 2>&1
-    /etc/init.d/ttyd restart >/dev/null 2>&1
-fi
-EOF
 
 # 修改概览里时间显示为中文数字(F大打包工具会替换)
 sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")) .. " " .. os.date("%X")/g' package/lean/autocore/files/arm/index.htm
@@ -101,32 +96,6 @@ git clone https://github.com/immortalwrt/homeproxy package/luci-app-homeproxy
 git clone --depth=1 -b lede https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
 git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 
-# 修复 v2ray-geodata 依赖问题
-rm -rf feeds/packages/net/v2ray-geodata
-rm -rf package/feeds/packages/v2ray-geodata
-git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
-
-# 修复循环依赖问题
-# 修复 luci-app-bypass 循环依赖
-sed -i 's|depends on iptables|depends on iptables \&\& !PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy|g' feeds/small/luci-app-bypass/Makefile 2>/dev/null || true
-
-# 修复 natmap 自依赖
-sed -i 's|select natmap|select natmap \&\& !PACKAGE_natmap|g' feeds/small/natmap/Makefile 2>/dev/null || true
-
-# 修复 baresip 循环依赖
-sed -i 's|depends on baresip-mod-avcodec|depends on baresip-mod-avcodec \&\& !PACKAGE_baresip-mod-avformat|g' feeds/packages/net/baresip-mod-avformat/Makefile 2>/dev/null || true
-
-# 修复 miniupnpd 自依赖
-sed -i 's|select miniupnpd|select miniupnpd \&\& !PACKAGE_miniupnpd|g' feeds/packages/net/miniupnpd/Makefile 2>/dev/null || true
-
-# 修复 tor 循环依赖
-sed -i 's|depends on tor|depends on tor \&\& !PACKAGE_luci-app-torbp|g' feeds/small/luci-app-torbp/Makefile 2>/dev/null || true
-
-# 修复 mentohust 自依赖
-sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/packages/net/mentohust/Makefile 2>/dev/null || true
-
-# 修复 kmod-oaf 自依赖
-sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packages/kernel/kmod-oaf/Makefile 2>/dev/null || true
 
 # 调整部分插件到nas菜单
 sed -i 's/services/nas/g' feeds/luci/applications/luci-app-hd-idle/root/usr/share/luci/menu.d/luci-app-hd-idle.json
@@ -148,8 +117,6 @@ sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/
 # Alist
 rm -rf package/luci-app-alist
 git clone --depth=1 https://github.com/sbwml/luci-app-alist package/luci-app-alist
-[ -f package/luci-app-alist/root/usr/share/luci/menu.d/luci-app-alist.json ] && sed -i 's/services/nas/g' package/luci-app-alist/root/usr/share/luci/menu.d/luci-app-alist.json
-
 
 
 # 修改插件名字
@@ -173,23 +140,16 @@ sed -i '/msgstr/s/"带宽监控"/"监视"/g' feeds/luci/applications/luci-app-nl
 sed -i '/msgid "Reboot"/{n;s/msgstr "重启"/msgstr "重启设备"/;}' feeds/luci/modules/luci-base/po/zh-cn/base.po
 
 
-#删除插件
-rm -rf feeds/luci/applications/luci-app-qbittorrent
-rm -rf feeds/luci/applications/luci-app-qbittorrent
-rm -rf feeds/packages/net/qBittorrent-static
-rm -rf feeds/packages/net/qBittorrent
-rm -rf package/small-package/luci-app-netdata
-rm -rf feeds/luci/applications/luci-app-mia
-rm -rf feeds/small/luci-app-mia
-rm -rf package/feeds/luci/luci-app-mia
-rm -rf package/feeds/small/luci-app-mia
-rm -rf package/small-package/luci-app-mia
-rm -rf package/luci-app-mia
-rm -rf small/{luci-app-bypass,luci-app-fchomo}
-
 # golang版本修复
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
+
+
+# 修复 hostapd 报错
+cp -f $GITHUB_WORKSPACE/scripts/011-fix-mbo-modules-build.patch package/network/services/hostapd/patches/011-fix-mbo-modules-build.patch
+
+# 修复 armv8 设备 xfsprogs 报错
+sed -i 's/TARGET_CFLAGS.*/TARGET_CFLAGS += -DHAVE_MAP_SYNC -D_LARGEFILE64_SOURCE/g' feeds/packages/utils/xfsprogs/Makefile
 
 # mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
@@ -197,3 +157,11 @@ find ./ | grep Makefile | grep mosdns | xargs rm -f
 rm -rf feeds/packages/net/mosdns feeds/packages/net/v2ray-geodata
 git clone https://github.com/sbwml/luci-app-mosdns package/mosdns
 git clone https://github.com/sbwml/v2ray-geodata package/geodata
+
+# 修复 v2ray-geodata 依赖问题
+rm -rf feeds/packages/net/v2ray-geodata
+rm -rf package/feeds/packages/v2ray-geodata
+git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+
+./scripts/feeds update -a
+./scripts/feeds install -a

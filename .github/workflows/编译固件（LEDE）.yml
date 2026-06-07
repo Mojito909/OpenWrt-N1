@@ -135,8 +135,6 @@ jobs:
         chmod +x "$GITHUB_WORKSPACE/LEDE/diy-part2.sh"
         cd /workdir/openwrt
         "$GITHUB_WORKSPACE/LEDE/diy-part2.sh"
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
 
 
     - name: 下载软件包
