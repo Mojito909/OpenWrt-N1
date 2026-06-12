@@ -26,7 +26,7 @@ sed -i "s|OpenWrt |LEDE Build $(TZ=UTC-8 date '+%Y.%m.%d') @ OpenWrt |g" package
 sed -i 's#openwrt.proxy.ustclug.org#mirrors.bfsu.edu.cn/openwrt#g' package/lean/default-settings/files/zzz-default-settings
 
 # 修改默认IP地址
-sed -i 's/192.168.1.1/192.168.3.10/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.1.10/g' package/base-files/files/bin/config_generate
 
 # 修改系统主机名 (LEDE -> OpenWrt-N1)
 sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
@@ -75,13 +75,11 @@ git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-ser
 rm -rf package/custom/luci-app-amlogic
 rm -rf package/luci-app-amlogic
 rm -rf package/small-package/luci-app-amlogic
-git clone https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
-sed -i "s|https.*/OpenWrt| https://github.com/fichenx/Actions-OpenWrt|g" package/luci-app-amlogic/luci-app-amlogic/root/etc/config/amlogic
-sed -i "s|opt/kernel| https://github.com/breakingbadboy/OpenWrt/releases/tag/kernel_stable|g" package/luci-app-amlogic/luci-app-amlogic/root/etc/config/amlogic
-sed -i "s|ARMv8|ARMv8(lede_lua)|g" package/luci-app-amlogic/luci-app-amlogic/root/etc/config/amlogic
+git clone -b main https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 
 # AdGuardHome
-git clone https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
+rm -rf package/luci-app-adguardhome
+git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
 
 # HomeProxy
 rm -rf package/luci-app-homeproxy
@@ -92,7 +90,8 @@ git clone --depth=1 -b lede https://github.com/pymumu/luci-app-smartdns package/
 git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 
 # Alist
-git clone https://github.com/sbwml/luci-app-alist package/alist
+rm -rf package/luci-app-alist
+git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
 
 
 # ==================== 依赖修复 ====================
@@ -116,6 +115,12 @@ sed -i 's|depends on luci-app-ssr-plus|depends on luci-app-ssr-plus \&\& !PACKAG
 # golang版本修复
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
+
+# 修复 hostapd 报错
+cp -f "$GITHUB_WORKSPACE/scripts/011-fix-mbo-modules-build.patch" package/network/services/hostapd/patches/011-fix-mbo-modules-build.patch 2>/dev/null || true
+
+# 修复 armv8 设备 xfsprogs 报错
+sed -i 's/TARGET_CFLAGS.*/TARGET_CFLAGS += -DHAVE_MAP_SYNC -D_LARGEFILE64_SOURCE/g' feeds/packages/utils/xfsprogs/Makefile
 
 # MosDNS
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
@@ -148,12 +153,12 @@ sed -i 's/"Aria2 配置"/"Aria2"/g' $(grep "Aria2 配置" -rl ./)
 sed -i 's/"实时流量监测"/"流量"/g' $(grep "实时流量监测" -rl ./)
 sed -i 's/"Alist 文件列表"/"Alist"/g' $(grep "Alist 文件列表" -rl ./)
 sed -i 's/"挂载点"/"磁盘挂载"/g' $(grep "挂载点" -rl ./)
-sed -i 's/"Npc"/"Nps内网穿透"/g' $(grep "Npc" -rl ./)
-sed -i 's/"Frp 内网穿透"/"Frp内网穿透"/g' $(grep "Frp 内网穿透" -rl ./)
+sed -i 's/"Npc"/"Nps穿透"/g' $(grep "Npc" -rl ./)
+sed -i 's/"Frp 内网穿透"/"Frp穿透"/g' $(grep "Frp 内网穿透" -rl ./)
 sed -i 's/"FTP 服务器"/"FTP服务器"/g' $(grep "FTP 服务器" -rl ./)
 sed -i 's/"TTYD 终端"/"终端"/g' $(grep "TTYD 终端" -rl ./)
 sed -i 's/"网络存储"/"存储"/g' $(grep "网络存储" -rl ./)
-sed -i 's/"NPS 内网穿透客户端"/"NPS内网穿透"/g' $(grep "NPS 内网穿透客户端" -rl ./)
+sed -i 's/"NPS 内网穿透客户端"/"NPS穿透"/g' $(grep "NPS 内网穿透客户端" -rl ./)
 sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' $(grep "ShadowSocksR Plus+" -rl ./)
 
 
@@ -173,4 +178,10 @@ rm -rf feeds/luci/applications/luci-app-qbittorrent
 rm -rf feeds/packages/net/qBittorrent-static
 rm -rf feeds/packages/net/qBittorrent
 rm -rf package/small-package/luci-app-netdata
+rm -rf feeds/luci/applications/luci-app-mia
+rm -rf feeds/small/luci-app-mia
+rm -rf package/feeds/luci/luci-app-mia
+rm -rf package/feeds/small/luci-app-mia
+rm -rf package/small-package/luci-app-mia
+rm -rf package/luci-app-mia
 rm -rf small/{luci-app-bypass,luci-app-fchomo}
