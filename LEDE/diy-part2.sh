@@ -26,7 +26,7 @@ sed -i "s|OpenWrt |LEDE Build $(TZ=UTC-8 date '+%Y.%m.%d') @ OpenWrt |g" package
 sed -i 's#openwrt.proxy.ustclug.org#mirrors.bfsu.edu.cn/openwrt#g' package/lean/default-settings/files/zzz-default-settings
 
 # 修改默认IP地址
-sed -i 's/192.168.1.1/192.168.1.10/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.3.10/g' package/base-files/files/bin/config_generate
 
 # 修改系统主机名 (LEDE -> OpenWrt-N1)
 sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
