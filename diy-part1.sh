@@ -13,10 +13,10 @@
 # Uncomment a feed source
 #sed -i 's/^#\(.*helloworld\)/\1/' feeds.conf.default
 
-# 添加feed源（使用echo追加，添加错误检查）
-grep -q 'kenzok8/openwrt-packages' feeds.conf.default || echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
-grep -q 'openwrt-passwall-packages' feeds.conf.default || echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main' >> feeds.conf.default
-grep -q 'xiaorouji/openwrt-passwall' feeds.conf.default || echo 'src-git passwall_luci https://github.com/xiaorouji/openwrt-passwall.git;main' >> feeds.conf.default
+# 添加feed源
+echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
+echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main' >> feeds.conf.default
+echo 'src-git passwall_luci https://github.com/xiaorouji/openwrt-passwall.git;main' >> feeds.conf.default
 
 
 # 注释掉可能有问题的源
