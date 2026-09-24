@@ -185,15 +185,20 @@ jobs:
 
 
     - name: 清理磁盘空间
-      if: (!cancelled())
+      if: success()
       run: |
+        set -e
         echo "清理之前："
         df -hT
-        mkdir openwrt-armvirt
-        mkdir -p /workdir/upload
+        mkdir -p openwrt-armvirt /workdir/upload
         # 使用绝对路径操作，避免软链接解析问题
-        cp /workdir/openwrt/bin/targets/*/*/*.tar.gz /workdir/upload/
-        mv /workdir/openwrt/bin/targets/*/*/*.tar.gz openwrt-armvirt/
+        files=(/workdir/openwrt/bin/targets/*/*/*.tar.gz)
+        if [ ! -e "${files[0]}" ]; then
+          echo "未生成 rootfs 固件包，构建可能在更早阶段失败。"
+          exit 1
+        fi
+        cp "${files[@]}" /workdir/upload/
+        mv "${files[@]}" openwrt-armvirt/
         echo -e "\n"
         echo "列出空间占用前10的目录或文件："
         sudo du -h --max-depth=1 /workdir | sort -nr | head -10
