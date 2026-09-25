@@ -73,6 +73,11 @@ git clone --depth=1 https://github.com/danchexiaoyang/luci-app-onliner.git packa
 
 # 通知插件
 git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-serverchan
+# tty228 仓库的 PKG_NAME 就是 luci-app-wechatpush（目录名叫 serverchan），
+# 与 openwrt-25.12 luci feed 自带的 luci-app-wechatpush 重复定义，会生成
+# 两份同名 ipk（3.6.12 与 3.6.12-r1），导致 package/install 阶段 opkg 冲突
+# （Error 255）。保留本地 clone 版，删除 feed 挂载副本。
+rm -rf package/feeds/luci/luci-app-wechatpush
 
 # 晶晨宝盒
 rm -rf package/custom/luci-app-amlogic

@@ -141,6 +141,27 @@ jobs:
       run: |
         cd /workdir/openwrt
         make defconfig
+        # dnsmasq 与 dnsmasq-full 互斥：LEDE 默认包集已含 dnsmasq-full，
+        # 若 defconfig 展开后普通 dnsmasq 也被拉成 =y，两者 ipkg 会在
+        # package/install 阶段冲突（opkg Collected errors -> Error 255）。
+        # 必须在 defconfig 之后清理，defconfig 前的 .config 没有这些条目。
+        if grep -q '^CONFIG_PACKAGE_dnsmasq-full=y' .config; then
+          sed -i 's/^CONFIG_PACKAGE_dnsmasq=y$/# CONFIG_PACKAGE_dnsmasq is not set/' .config
+        fi
+        echo "===== dnsmasq 选择状态 ====="
+        grep -E '^CONFIG_PACKAGE_dnsmasq' .config || echo "(无 dnsmasq 条目)"
+        # 跨源查重：不同 feed / 本地 package 出现相同 PKG_NAME 会在
+        # package/install 阶段生成同名 ipk 导致 opkg 冲突（如 luci-app-wechatpush）
+        echo "===== 重复包定义检测 ====="
+        dup_pkgs="$(find package -mindepth 2 -maxdepth 6 -name Makefile -exec grep -H '^PKG_NAME:=' {} + 2>/dev/null | sed 's|/Makefile:PKG_NAME:=| |' | awk '{print $2}' | sort | uniq -d || true)"
+        if [ -n "$dup_pkgs" ]; then
+          echo "警告：以下 PKG_NAME 存在多处定义："
+          for dp in $dup_pkgs; do
+            find package -mindepth 2 -maxdepth 6 -name Makefile -exec grep -l "^PKG_NAME:=$dp\$" {} + 2>/dev/null
+          done
+        else
+          echo "(无重复定义)"
+        fi
         grep -E '^CONFIG_PACKAGE_(luci-app-adguardhome|adguardhome|luci-app-alist|alist|luci-app-passwall|xray-core|luci-app-ttyd|ttyd|luci-i18n-ttyd-zh-cn)=' .config || true
         ./scripts/feeds search luci-app-passwall || true
         echo "===== 编译目标校验 (.config) ====="
@@ -157,7 +178,14 @@ jobs:
       run: |
         cd /workdir/openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || { make -j1 V=sc 2>&1 | tee build.log; exit ${PIPESTATUS[0]}; }
+        make -j$(nproc) || {
+          make -j1 V=sc 2>&1 | tee build.log
+          rc=${PIPESTATUS[0]}
+          echo "===== opkg 错误摘要（定位 package/install 失败根因）====="
+          grep -m1 -A20 "Collected errors" build.log || true
+          grep -m3 -B5 -A15 "opkg_install_cmd" build.log || true
+          exit "$rc"
+        }
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
@@ -167,6 +195,10 @@ jobs:
       if: failure()
       run: |
         cd /workdir/openwrt
+        # opkg 摘要放在最前，避免大体积尾部日志触发 GitHub 60k 字符截断
+        echo "===== opkg 错误摘要 ====="
+        grep -m1 -A20 "Collected errors" build.log 2>/dev/null || true
+        grep -m3 -B5 -A15 "opkg_install_cmd" build.log 2>/dev/null || true
         echo "===== .config (TARGET 摘要) ====="
         grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 200 || true
         echo "===== diffconfig ====="
@@ -175,12 +207,12 @@ jobs:
         ls -lah tmp/log 2>/dev/null || true
         latest_log="$(ls -1t tmp/log/* 2>/dev/null | head -n 1 || true)"
         if [ -n "$latest_log" ]; then
-          echo "===== 最新 tmp/log: $latest_log (末尾400行) ====="
-          tail -n 400 "$latest_log" || true
+          echo "===== 最新 tmp/log: $latest_log (末尾200行) ====="
+          tail -n 200 "$latest_log" || true
         fi
         if [ -f build.log ]; then
-          echo "===== build.log (末尾400行) ====="
-          tail -n 400 build.log || true
+          echo "===== build.log (末尾200行) ====="
+          tail -n 200 build.log || true
         fi
 
 
