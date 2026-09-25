@@ -1,9 +1,10 @@
-# 分支必须与 LEDE 源码树代次一致（LEDE 自带的 feeds.conf.default 用 luci;openwrt-25.12）。
-# luci 的 master 分支已冻结在 2026-06-08，比 openwrt-25.12 少 38 个插件（含 passwall），
-# 与当前主干代码混编会导致插件被 defconfig 静默丢弃甚至编译失败。
+# luci 分支决定 LuCI 界面代次，按偏好固定为 openwrt-23.05（该分支活跃维护，
+# 自带 passwall 在内共 181 个插件）。注意它比 LEDE 主干树自带的 openwrt-25.12
+# 旧一代，若编译或界面出现与基础组件（rpcd/ucode/fw4）不兼容，优先怀疑这层代次差。
 src-git packages https://github.com/coolsnowwolf/packages.git
-src-git luci https://github.com/coolsnowwolf/luci.git;openwrt-25.12
+src-git luci https://github.com/coolsnowwolf/luci.git;openwrt-23.05
 #src-git luci https://github.com/coolsnowwolf/luci.git;openwrt-24.10
+#src-git luci https://github.com/coolsnowwolf/luci.git;openwrt-25.12
 src-git routing https://github.com/coolsnowwolf/routing
 #src-git telephony https://github.com/openwrt/telephony.git
 

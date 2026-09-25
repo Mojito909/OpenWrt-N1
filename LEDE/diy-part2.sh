@@ -43,29 +43,26 @@ sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")
 
 # ==================== 主题配置 ====================
 
-# 拉取 Argon 主题
-# feeds install 后 kenzok8 源的包落在 package/feeds/kenzo/ 下，需按实际路径清理
-rm -rf feeds/luci/themes/luci-theme-argon
+# Argon 主题直接使用 luci@openwrt-23.05 feed 自带的 luci-theme-argon（v2.3.1，Lua 模板）：
+# 它是 feed 作者为这一代 LuCI 配套打包的版本，模板 API 天然匹配，不再从 jerrykuku
+# 仓库克隆主题，避免 feed 版（2.3.1）与克隆版（2.4.7）同名包版本不一致引发
+# opkg 冲突（同 wechatpush 的 Error 255）。
+# 仅清理 kenzok8 源里的同名包（其主题/配置插件版本与 feed 不一致，同样构成重复定义）。
 rm -rf package/feeds/kenzo/luci-app-argon*
 rm -rf package/feeds/kenzo/luci-theme-argon*
-# 必须用 master 分支：18.06 分支的主题还是 Lua 模板，header.htm 里调用了
-# luci.dispatcher.context / node 等现代 LuCI（25.12 起改用 ucode）已删除的 API，
-# 会让整个 LuCI 报 "attempt to index global '__entries'" 而打不开任何页面。
-# master 分支已迁移到 ucode/template/themes/argon/*.ut，与 25.12 兼容。
+# 23.05 的 luci feed 不带 luci-app-argon-config，保留 jerrykuku 的克隆作为唯一来源
 git clone -b master https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
-git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 
-# 更改 Argon 主题背景
+# 更改 Argon 主题背景（直接写入 feed 内的主题目录，package/feeds/luci 是指向它的软链）
 if [ -f "$GITHUB_WORKSPACE/images/bg1.jpg" ]; then
-    cp -f "$GITHUB_WORKSPACE/images/bg1.jpg" package/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
+    cp -f "$GITHUB_WORKSPACE/images/bg1.jpg" feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
 else
     echo "警告: 背景图片文件不存在，跳过复制"
 fi
 
-# 移除主题页脚版本信息
-# master 分支的主题页脚在 ucode 模板里（18.06 的 luasrc/.../footer.htm 已不存在）
-sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
-sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
+# 移除主题页脚版本信息（feed 版主题是 Lua 模板，页脚在 footer.htm）
+sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm
+sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm
 
 
 # ==================== 插件安装 ====================
@@ -75,11 +72,12 @@ git clone --depth=1 https://github.com/danchexiaoyang/luci-app-onliner.git packa
 
 # 通知插件
 git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-serverchan
-# tty228 仓库的 PKG_NAME 就是 luci-app-wechatpush（目录名叫 serverchan），
-# 与 openwrt-25.12 luci feed 自带的 luci-app-wechatpush 重复定义，会生成
-# 两份同名 ipk（3.6.12 与 3.6.12-r1），导致 package/install 阶段 opkg 冲突
-# （Error 255）。保留本地 clone 版，删除 feed 挂载副本。
+# tty228 仓库的 PKG_NAME 就是 luci-app-wechatpush（目录名叫 serverchan）。凡其他来源
+# 也提供同名包（openwrt-25.12 在 luci feed、openwrt-23.05 在 kenzok8 源），都会生成
+# 两份同名 ipk 导致 package/install 阶段 opkg 冲突（Error 255）。保留本地 clone 版，
+# 两个来源的挂载副本都清掉。
 rm -rf package/feeds/luci/luci-app-wechatpush
+rm -rf package/feeds/kenzo/luci-app-wechatpush
 
 # 晶晨宝盒
 rm -rf package/custom/luci-app-amlogic
@@ -102,6 +100,9 @@ git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 # Alist
 rm -rf package/luci-app-alist
 git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
+# openwrt-23.05 的 luci feed 自带 luci-app-alist，与上面克隆的同名但版本不同，
+# 会像 wechatpush 一样生成两份 ipk 冲突；克隆版同时提供 alist 主程序，保留克隆版。
+rm -rf package/feeds/luci/luci-app-alist
 
 
 # ==================== 依赖修复 ====================
@@ -147,11 +148,11 @@ git clone --depth=1 https://github.com/immortalwrt/packages feeds/packages_temp
 cp -rf feeds/packages_temp/net/nps feeds/packages/net/nps
 rm -rf feeds/packages_temp
 
-# 修改 nps 服务器允许域名
-sed -i 's/^server.datatype = "ipaddr"/--server.datatype = "ipaddr"/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
-sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua
-sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
-sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po
+# 修改 nps 服务器允许域名（openwrt-23.05 的 luci feed 不带 luci-app-nps，缺失时跳过）
+sed -i 's/^server.datatype = "ipaddr"/--server.datatype = "ipaddr"/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua 2>/dev/null || true
+sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/luasrc/model/cbi/nps.lua 2>/dev/null || true
+sed -i 's/Must an IPv4 address/IPv4 address or domain name/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po 2>/dev/null || true
+sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/luci-app-nps/po/zh-cn/nps.po 2>/dev/null || true
 
 
 # ==================== 插件名称修改 ====================
@@ -172,9 +173,9 @@ sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' $(grep "ShadowSocksR Plus+" -rl ./
 
 
 # ==================== 界面文字修改 ====================
-
-sed -i '/msgstr/s/"带宽监控"/"监视"/g' feeds/luci/applications/luci-app-nlbwmon/po/zh-cn/nlbwmon.po
-sed -i '/msgid "Reboot"/{n;s/msgstr "重启"/msgstr "重启设备"/;}' feeds/luci/modules/luci-base/po/zh-cn/base.po
+# 注意：luci@openwrt-23.05 的翻译目录是 po/zh_Hans/（luci@master 时代是 po/zh-cn/）
+sed -i '/msgstr/s/"带宽监控"/"监视"/g' feeds/luci/applications/luci-app-nlbwmon/po/zh_Hans/nlbwmon.po
+sed -i '/msgid "Reboot"/{n;s/msgstr "重启"/msgstr "重启设备"/;}' feeds/luci/modules/luci-base/po/zh_Hans/base.po
 
 
 # ==================== 清理删除 ====================
