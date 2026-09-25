@@ -44,9 +44,10 @@ sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")
 # ==================== 主题配置 ====================
 
 # 拉取 Argon 主题
+# feeds install 后 kenzok8 源的包落在 package/feeds/kenzo/ 下，需按实际路径清理
 rm -rf feeds/luci/themes/luci-theme-argon
-rm -rf package/small-package/luci-app-argon*
-rm -rf package/small-package/luci-theme-argon*
+rm -rf package/feeds/kenzo/luci-app-argon*
+rm -rf package/feeds/kenzo/luci-theme-argon*
 git clone -b 18.06 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 
@@ -58,9 +59,11 @@ else
 fi
 
 # 移除主题页脚版本信息
-sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm
-sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm
-sed -i 's/<a href=\"https:\/\/github.com\/coolsnowwolf\/luci\">/<a>/g' feeds/luci/themes/luci-theme-bootstrap/luasrc/view/themes/bootstrap/footer.htm
+# argon 主题已由上面的 git clone 落到 package/luci-theme-argon，
+# 原来的 feeds/luci/themes/luci-theme-argon 已被删除，需改副本路径；
+# bootstrap 主题在 25.12 已迁移到 ucode 模板，旧 footer.htm 及其链接模式均不存在，故移除该项
+sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
+sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
 
 
 # ==================== 插件安装 ====================
@@ -74,7 +77,7 @@ git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-ser
 # 晶晨宝盒
 rm -rf package/custom/luci-app-amlogic
 rm -rf package/luci-app-amlogic
-rm -rf package/small-package/luci-app-amlogic
+rm -rf package/feeds/kenzo/luci-app-amlogic
 git clone -b main https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 
 # AdGuardHome
@@ -102,15 +105,14 @@ rm -rf package/feeds/packages/v2ray-geodata
 git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
 # 修复循环依赖问题
-sed -i 's|depends on iptables|depends on iptables \&\& !PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy|g' feeds/small/luci-app-bypass/Makefile 2>/dev/null || true
-sed -i 's|select natmap|select natmap \&\& !PACKAGE_natmap|g' feeds/small/natmap/Makefile 2>/dev/null || true
+# 注：luci 插件在 feed 中的真实路径是 feeds/luci/applications/<app>/，
+# 旧脚本引用的 feeds/small/ 从未存在（kenzok8/openwrt-packages 的挂载名是 kenzo），
+# 且其目标包（bypass/natmap/torbp/mia）在当前源中已不存在，故一并移除。
+sed -i 's|depends on luci-app-passwall|depends on luci-app-passwall \&\& !PACKAGE_luci-app-ssr-plus|g' feeds/luci/applications/luci-app-passwall/Makefile 2>/dev/null || true
+sed -i 's|select miniupnpd|select miniupnpd \&\& !PACKAGE_miniupnpd|g' feeds/packages/net/miniupnpd-iptables/Makefile 2>/dev/null || true
 sed -i 's|depends on baresip-mod-avcodec|depends on baresip-mod-avcodec \&\& !PACKAGE_baresip-mod-avformat|g' feeds/packages/net/baresip-mod-avformat/Makefile 2>/dev/null || true
-sed -i 's|select miniupnpd|select miniupnpd \&\& !PACKAGE_miniupnpd|g' feeds/packages/net/miniupnpd/Makefile 2>/dev/null || true
-sed -i 's|depends on tor|depends on tor \&\& !PACKAGE_luci-app-torbp|g' feeds/small/luci-app-torbp/Makefile 2>/dev/null || true
 sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/packages/net/mentohust/Makefile 2>/dev/null || true
 sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packages/kernel/kmod-oaf/Makefile 2>/dev/null || true
-sed -i 's|depends on luci-app-passwall|depends on luci-app-passwall \&\& !PACKAGE_luci-app-ssr-plus|g' feeds/small/luci-app-passwall/Makefile 2>/dev/null || true
-sed -i 's|depends on luci-app-ssr-plus|depends on luci-app-ssr-plus \&\& !PACKAGE_luci-app-passwall|g' feeds/small/luci-app-ssr-plus/Makefile 2>/dev/null || true
 
 # golang版本修复
 rm -rf feeds/packages/lang/golang
@@ -177,11 +179,6 @@ sed -i '/\* \* \* \/etc\/coremark.sh/d' feeds/packages/utils/coremark/*
 rm -rf feeds/luci/applications/luci-app-qbittorrent
 rm -rf feeds/packages/net/qBittorrent-static
 rm -rf feeds/packages/net/qBittorrent
-rm -rf package/small-package/luci-app-netdata
 rm -rf feeds/luci/applications/luci-app-mia
-rm -rf feeds/small/luci-app-mia
 rm -rf package/feeds/luci/luci-app-mia
-rm -rf package/feeds/small/luci-app-mia
-rm -rf package/small-package/luci-app-mia
 rm -rf package/luci-app-mia
-rm -rf small/{luci-app-bypass,luci-app-fchomo}
