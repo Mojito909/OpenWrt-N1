@@ -48,8 +48,12 @@ sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")
 rm -rf feeds/luci/themes/luci-theme-argon
 rm -rf package/feeds/kenzo/luci-app-argon*
 rm -rf package/feeds/kenzo/luci-theme-argon*
-git clone -b 18.06 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
-git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+# 必须用 master 分支：18.06 分支的主题还是 Lua 模板，header.htm 里调用了
+# luci.dispatcher.context / node 等现代 LuCI（25.12 起改用 ucode）已删除的 API，
+# 会让整个 LuCI 报 "attempt to index global '__entries'" 而打不开任何页面。
+# master 分支已迁移到 ucode/template/themes/argon/*.ut，与 25.12 兼容。
+git clone -b master https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 
 # 更改 Argon 主题背景
 if [ -f "$GITHUB_WORKSPACE/images/bg1.jpg" ]; then
@@ -59,11 +63,9 @@ else
 fi
 
 # 移除主题页脚版本信息
-# argon 主题已由上面的 git clone 落到 package/luci-theme-argon，
-# 原来的 feeds/luci/themes/luci-theme-argon 已被删除，需改副本路径；
-# bootstrap 主题在 25.12 已迁移到 ucode 模板，旧 footer.htm 及其链接模式均不存在，故移除该项
-sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
-sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
+# master 分支的主题页脚在 ucode 模板里（18.06 的 luasrc/.../footer.htm 已不存在）
+sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
+sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
 
 
 # ==================== 插件安装 ====================
