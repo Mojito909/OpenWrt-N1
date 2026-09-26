@@ -127,9 +127,12 @@ sed -i 's|depends on baresip-mod-avcodec|depends on baresip-mod-avcodec \&\& !PA
 sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/packages/net/mentohust/Makefile 2>/dev/null || true
 sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packages/kernel/kmod-oaf/Makefile 2>/dev/null || true
 
-# gost 主程序去重：kenzo 源（v3.3.0）新于 packages 源（v3.2.2），而 luci-app-gost
-# 依赖 gost，两份同名定义并存会按扫描序取其一，删除旧者保证用到新版
-rm -rf feeds/packages/net/gost
+# 注意：不要在这里删除 packages 源的 gost 副本。scripts/feeds install 按
+# feeds.conf 的顺序取第一个提供者挂载（packages 排在 kenzo 之前），gost 实际
+# 挂载的就是 packages 的副本；删掉它的源码会让 luci-app-gost 的 gost 依赖
+# 无法解析，直接导致 package/install Error 255
+# （"cannot find dependency gost for luci-app-gost"）。kenzo 的 v3.3.0 因此被
+# packages 的 v3.2.2 遮蔽，属可接受取舍。
 
 # golang版本修复
 rm -rf feeds/packages/lang/golang
