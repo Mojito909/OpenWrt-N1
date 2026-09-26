@@ -127,6 +127,10 @@ sed -i 's|depends on baresip-mod-avcodec|depends on baresip-mod-avcodec \&\& !PA
 sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/packages/net/mentohust/Makefile 2>/dev/null || true
 sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packages/kernel/kmod-oaf/Makefile 2>/dev/null || true
 
+# gost 主程序去重：kenzo 源（v3.3.0）新于 packages 源（v3.2.2），而 luci-app-gost
+# 依赖 gost，两份同名定义并存会按扫描序取其一，删除旧者保证用到新版
+rm -rf feeds/packages/net/gost
+
 # golang版本修复
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang

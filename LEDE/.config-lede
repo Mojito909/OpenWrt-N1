@@ -110,8 +110,14 @@ CONFIG_PACKAGE_luci-app-wechatpush=y
 CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-smartdns=y
 
+# kenzok8(kenzo) 源插件（均无跨源重名，依赖 curl/dnsmasq-full/ipset/gost 均可满足）
+CONFIG_PACKAGE_luci-app-dnsfilter=y
+CONFIG_PACKAGE_luci-app-gost=y
+CONFIG_PACKAGE_luci-app-aliddns=y
+
 # Themes
 CONFIG_PACKAGE_luci-theme-argon=y
+CONFIG_PACKAGE_luci-theme-glass=y
 
 # Software
 CONFIG_PACKAGE_docker-compose=y
@@ -157,7 +163,6 @@ CONFIG_PACKAGE_mt7922bt-firmware=y
 # CONFIG_PACKAGE_mentohust is not set
 # CONFIG_PACKAGE_geoview is not set
 # CONFIG_PACKAGE_luci-app-torbp is not set
-# CONFIG_PACKAGE_luci-app-aliddns is not set
 # CONFIG_PACKAGE_luci-app-ddns-go is not set
 # CONFIG_PACKAGE_luci-app-ddns is not set
 # CONFIG_PACKAGE_ddns-scripts is not set
