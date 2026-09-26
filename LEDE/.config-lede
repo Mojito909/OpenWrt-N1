@@ -114,6 +114,9 @@ CONFIG_PACKAGE_luci-app-smartdns=y
 
 # Themes
 CONFIG_PACKAGE_luci-theme-argon=y
+# glass 主题为 ucode 模板，与 openwrt-23.05 的 ucode 渲染兼容
+# （main 分支的 luci@master 是 Lua 渲染，用不了它，故只加在本分支）
+CONFIG_PACKAGE_luci-theme-glass=y
 
 # Software
 CONFIG_PACKAGE_docker-compose=y
