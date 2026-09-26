@@ -109,6 +109,21 @@ rm -rf package/luci-app-alist
 git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
 
 
+# ==================== 控制器 index 缓存兼容 ====================
+# LuCI 会把所有控制器的 index() 用 string.dump 序列化进 /tmp/luci-indexcache，
+# 反序列化后文件局部 upvalue 会按名绑定到不存在的同名全局（=nil）。凡 index()
+# 里引用文件局部变量的控制器，首次访问正常、第二次起全站报
+# "attempt to index upvalue ... (a nil value)"（本次 aliddns 即踩此坑）。
+# 把 require 挪进 index() 内部使其成为 index 自己的局部变量即可规避；
+# passwall/passwall2 的控制器自带 "-- not available" 标记，作者已规避，无需处理。
+sed -i -e 's|^local fs = require "nixio.fs"$||' \
+       -e 's|^function index()$|function index()\n\tlocal fs = require "nixio.fs"|' \
+       feeds/kenzo/luci-app-aliddns/luasrc/controller/aliddns.lua
+sed -i 's|^function index()$|function index()\n\tlocal nixio = require "nixio"|' \
+       feeds/kenzo/luci-app-dnsfilter/luasrc/controller/dnsfilter.lua \
+       feeds/kenzo/luci-app-gost/luasrc/controller/gost.lua
+
+
 # ==================== 依赖修复 ====================
 
 # 修复 v2ray-geodata 依赖
