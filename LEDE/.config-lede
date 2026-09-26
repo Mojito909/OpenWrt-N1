@@ -117,7 +117,8 @@ CONFIG_PACKAGE_luci-app-aliddns=y
 
 # Themes
 CONFIG_PACKAGE_luci-theme-argon=y
-CONFIG_PACKAGE_luci-theme-glass=y
+# luci-theme-glass 是 ucode 模板主题，与 luci@master 的 Lua 模板渲染不兼容
+# （会导致 No valid theme found），已移到 fix/lede-feeds-branch（23.05 代可用）
 
 # Software
 CONFIG_PACKAGE_docker-compose=y

@@ -44,19 +44,19 @@ sed -i 's/os.date()/os.date("%Y年%m月%d日") .. " " .. translate(os.date("%A")
 # ==================== 主题配置 ====================
 
 # 拉取 Argon 主题
-# feeds install 后 kenzok8 源的包落在 package/feeds/kenzo/ 下，需按实际路径清理。
-# luci@master feed 也自带 luci-theme-argon / luci-app-argon-config（v0.9，与克隆版
-# v2.4.7 / v1.0 版本不同），一并删除，避免同名包不同版本触发 opkg 冲突。
+# 关键约束：luci@master 的 LuCI 用 Lua 模板引擎渲染主题（dispatcher.lua 的
+# tpl.Template 找的是 luasrc/view/themes/argon/header.htm），主题必须用
+# jerrykuku 的 18.06 分支（Lua 模板）。master 分支是 ucode 模板（.ut），这一代
+# LuCI 无法渲染，会导致 "No valid theme found" 全站打不开。
+# （ucode 主题是为 23.05/25.12 那代 LuCI 准备的，两代不可混用。）
+# 同时清理同名包：luci@master feed 自带 argon-config（v0.9）、kenzo 源的
+# argon 主题/配置是 ucode 版（v2.4.7/v1.0），形态不匹配且版本不一，均删除。
 rm -rf feeds/luci/themes/luci-theme-argon
 rm -rf package/feeds/kenzo/luci-app-argon*
 rm -rf package/feeds/kenzo/luci-theme-argon*
 rm -rf package/feeds/luci/luci-app-argon-config
-# 主题与配置插件必须用 jerrykuku 的 master 分支（v2.4.7 / v1.0，ucode 模板）：
-# 18.06 分支还是 Lua 模板，header.htm 调用了现代 LuCI 已删除的 dispatcher API，
-# 会让 LuCI 报 "attempt to index global '__entries'" 而打不开任何页面。
-# v2.4.7 也正是此前 kenzok8 源里实际在生效的版本，界面结果不变。
-git clone -b master https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
-git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+git clone -b 18.06 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 
 # 更改 Argon 主题背景
 if [ -f "$GITHUB_WORKSPACE/images/bg1.jpg" ]; then
@@ -65,10 +65,9 @@ else
     echo "警告: 背景图片文件不存在，跳过复制"
 fi
 
-# 移除主题页脚版本信息
-# master 分支的主题页脚在 ucode 模板里（18.06 的 luasrc/.../footer.htm 已不存在）
-sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
-sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/ucode/template/themes/argon/footer.ut
+# 移除主题页脚版本信息（18.06 分支是 Lua 模板，页脚在 footer.htm）
+sed -i 's/<a class="luci-link" href="https:\/\/github.com\/openwrt\/luci"/<a/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
+sed -i 's/<a href="https:\/\/github.com\/jerrykuku\/luci-theme-argon" target="_blank">/<a>/g' package/luci-theme-argon/luasrc/view/themes/argon/footer.htm
 # bootstrap 主题在 luci@master 仍是 Lua 模板，页脚文件存在，保留原有处理
 sed -i 's/<a href=\"https:\/\/github.com\/coolsnowwolf\/luci\">/<a>/g' feeds/luci/themes/luci-theme-bootstrap/luasrc/view/themes/bootstrap/footer.htm
 
@@ -168,20 +167,22 @@ sed -i 's/必须是 IPv4 地址/IPv4 地址或域名/g' feeds/luci/applications/
 
 
 # ==================== 插件名称修改 ====================
+# 注意：grep 无匹配时命令会展开成没有输入文件的 sed（"sed: no input files"），
+# 属正常跳过，已加 2>/dev/null || true 消除噪音。
 
-sed -i 's/"Argon 主题设置"/"主题设置"/g' $(grep "Argon 主题设置" -rl ./)
-sed -i 's/"AdGuard Home"/"AdGuard"/g' $(grep "AdGuard Home" -rl ./)
-sed -i 's/"Aria2 配置"/"Aria2"/g' $(grep "Aria2 配置" -rl ./)
-sed -i 's/"实时流量监测"/"流量"/g' $(grep "实时流量监测" -rl ./)
-sed -i 's/"Alist 文件列表"/"Alist"/g' $(grep "Alist 文件列表" -rl ./)
-sed -i 's/"挂载点"/"磁盘挂载"/g' $(grep "挂载点" -rl ./)
-sed -i 's/"Npc"/"Nps穿透"/g' $(grep "Npc" -rl ./)
-sed -i 's/"Frp 内网穿透"/"Frp穿透"/g' $(grep "Frp 内网穿透" -rl ./)
-sed -i 's/"FTP 服务器"/"FTP服务器"/g' $(grep "FTP 服务器" -rl ./)
-sed -i 's/"TTYD 终端"/"终端"/g' $(grep "TTYD 终端" -rl ./)
-sed -i 's/"网络存储"/"存储"/g' $(grep "网络存储" -rl ./)
-sed -i 's/"NPS 内网穿透客户端"/"NPS穿透"/g' $(grep "NPS 内网穿透客户端" -rl ./)
-sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' $(grep "ShadowSocksR Plus+" -rl ./)
+sed -i 's/"Argon 主题设置"/"主题设置"/g' $(grep "Argon 主题设置" -rl ./) 2>/dev/null || true
+sed -i 's/"AdGuard Home"/"AdGuard"/g' $(grep "AdGuard Home" -rl ./) 2>/dev/null || true
+sed -i 's/"Aria2 配置"/"Aria2"/g' $(grep "Aria2 配置" -rl ./) 2>/dev/null || true
+sed -i 's/"实时流量监测"/"流量"/g' $(grep "实时流量监测" -rl ./) 2>/dev/null || true
+sed -i 's/"Alist 文件列表"/"Alist"/g' $(grep "Alist 文件列表" -rl ./) 2>/dev/null || true
+sed -i 's/"挂载点"/"磁盘挂载"/g' $(grep "挂载点" -rl ./) 2>/dev/null || true
+sed -i 's/"Npc"/"Nps穿透"/g' $(grep "Npc" -rl ./) 2>/dev/null || true
+sed -i 's/"Frp 内网穿透"/"Frp穿透"/g' $(grep "Frp 内网穿透" -rl ./) 2>/dev/null || true
+sed -i 's/"FTP 服务器"/"FTP服务器"/g' $(grep "FTP 服务器" -rl ./) 2>/dev/null || true
+sed -i 's/"TTYD 终端"/"终端"/g' $(grep "TTYD 终端" -rl ./) 2>/dev/null || true
+sed -i 's/"网络存储"/"存储"/g' $(grep "网络存储" -rl ./) 2>/dev/null || true
+sed -i 's/"NPS 内网穿透客户端"/"NPS穿透"/g' $(grep "NPS 内网穿透客户端" -rl ./) 2>/dev/null || true
+sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' $(grep "ShadowSocksR Plus+" -rl ./) 2>/dev/null || true
 
 
 # ==================== 界面文字修改 ====================
