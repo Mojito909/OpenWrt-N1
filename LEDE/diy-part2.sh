@@ -90,7 +90,11 @@ rm -rf package/feeds/kenzo/luci-app-wechatpush
 rm -rf package/custom/luci-app-amlogic
 rm -rf package/luci-app-amlogic
 rm -rf package/feeds/kenzo/luci-app-amlogic
-git clone -b main https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
+# ophub 把应用按 LuCI 代次分了分支：main 是 menu.d/ucode 形态（openwrt-23.05+
+# 的新一代 LuCI），lua 才是 Lua 控制器形态。本构建的 luci@master 属于后者，
+# Lua dispatcher 不读 menu.d 菜单，克隆 main 分支装上后菜单里不会出现晶晨宝盒，
+# 必须用 lua 分支（v3.1.321）。
+git clone -b lua https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 
 # AdGuardHome
 rm -rf package/luci-app-adguardhome
