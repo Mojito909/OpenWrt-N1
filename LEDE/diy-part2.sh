@@ -25,8 +25,17 @@ sed -i "s|OpenWrt |LEDE Build $(TZ=UTC-8 date '+%Y.%m.%d') @ OpenWrt |g" package
 # 修复软件源URL替换
 sed -i 's#openwrt.proxy.ustclug.org#mirrors.bfsu.edu.cn/openwrt#g' package/lean/default-settings/files/zzz-default-settings
 
-# 修改默认IP地址
-sed -i 's/192.168.1.1/192.168.3.10/g' package/base-files/files/bin/config_generate
+# 修改默认IP地址（按需求 192.168.31.10）
+sed -i 's/192.168.1.1/192.168.31.10/g' package/base-files/files/bin/config_generate
+# 双保险：armsr 镜像的默认网络配置存在被 flippy/ophub 镜像层覆盖的先例，
+# 再用 first-boot uci-defaults 强制指定一次，两种生成路径都会落到目标 IP
+mkdir -p package/base-files/files/etc/uci-defaults
+cat > package/base-files/files/etc/uci-defaults/99-lan-ip <<'EOF'
+uci set network.lan.ipaddr='192.168.31.10'
+uci commit network
+EOF
+# 构建日志验证：补丁必须命中 config_generate，否则后续流程没有意义
+grep -n "192.168.31.10" package/base-files/files/bin/config_generate || { echo "错误：IP 补丁未命中 config_generate，请检查上游改动"; exit 1; }
 
 # 修改系统主机名 (LEDE -> OpenWrt-N1)
 sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
