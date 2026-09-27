@@ -121,6 +121,13 @@ git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 rm -rf package/luci-app-alist
 git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
 
+# OpenClash（PassWall2/SSR Plus+ 移除后的替代）：small 源自带，且与 vernesong
+# master 同版同步（0.47.156），feeds install -a 自动挂载为
+# package/feeds/small/luci-app-openclash，此处无需克隆。kenzo 源的
+# luci-app-openclaw 是另一个插件，不构成重名冲突。
+# 依赖 dnsmasq-full/bash/curl/ca-bundle/ip-full/ruby/ruby-yaml/kmod-tun/unzip
+# 及 fw4 下的 kmod-nft-tproxy/kmod-inet-diag/luci-compat 已在 .config-lede 钉死。
+
 
 # ==================== 控制器 index 缓存兼容 ====================
 # LuCI 会把所有控制器的 index() 用 string.dump 序列化进 /tmp/luci-indexcache，
@@ -148,7 +155,6 @@ git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 # 注：luci 插件在 feed 中的真实路径是 feeds/luci/applications/<app>/，
 # 旧脚本引用的 feeds/small/ 从未存在（kenzok8/openwrt-packages 的挂载名是 kenzo），
 # 且其目标包（bypass/natmap/torbp/mia）在当前源中已不存在，故一并移除。
-sed -i 's|depends on luci-app-passwall|depends on luci-app-passwall \&\& !PACKAGE_luci-app-ssr-plus|g' feeds/luci/applications/luci-app-passwall/Makefile 2>/dev/null || true
 sed -i 's|select miniupnpd|select miniupnpd \&\& !PACKAGE_miniupnpd|g' feeds/packages/net/miniupnpd-iptables/Makefile 2>/dev/null || true
 sed -i 's|depends on baresip-mod-avcodec|depends on baresip-mod-avcodec \&\& !PACKAGE_baresip-mod-avformat|g' feeds/packages/net/baresip-mod-avformat/Makefile 2>/dev/null || true
 sed -i 's|select mentohust|select mentohust \&\& !PACKAGE_mentohust|g' feeds/packages/net/mentohust/Makefile 2>/dev/null || true
@@ -210,7 +216,6 @@ sed -i 's/"FTP 服务器"/"FTP服务器"/g' $(grep "FTP 服务器" -rl ./) 2>/de
 sed -i 's/"TTYD 终端"/"终端"/g' $(grep "TTYD 终端" -rl ./) 2>/dev/null || true
 sed -i 's/"网络存储"/"存储"/g' $(grep "网络存储" -rl ./) 2>/dev/null || true
 sed -i 's/"NPS 内网穿透客户端"/"NPS穿透"/g' $(grep "NPS 内网穿透客户端" -rl ./) 2>/dev/null || true
-sed -i 's/"ShadowSocksR Plus+"/"SSR Plus+"/g' $(grep "ShadowSocksR Plus+" -rl ./) 2>/dev/null || true
 
 
 # ==================== 界面文字修改 ====================

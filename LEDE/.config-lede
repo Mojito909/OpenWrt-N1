@@ -91,12 +91,20 @@ CONFIG_PACKAGE_luci-app-netdata=y
 CONFIG_PACKAGE_luci-app-nlbwmon=y
 CONFIG_PACKAGE_luci-app-onliner=y
 CONFIG_PACKAGE_luci-app-hd-idle=y
-# 按需求只保留 PassWall2（small 源，v26.9.16；aarch64 默认 Xray+SingBox 双核，
-# 透明代理 Iptables/Nftables 模式取 defconfig 默认）。PassWall 已移除，
-# 其 INCLUDE_Hysteria/Shadowsocks_Rust_Server/ShadowsocksR_Libev_Server/Xray
-# 选项一并删除（均属 passwall，passwall2 的核心由 Basic_Core 选择自动带入）。
-CONFIG_PACKAGE_luci-app-passwall2=y
-CONFIG_PACKAGE_xray-core=y
+# 代理改用 OpenClash（small 源自带，与 vernesong master 同版 0.47.156；
+# kenzo 源的 luci-app-openclaw 是另一个插件，无重名冲突）。
+# PassWall2 / SSR Plus+ 已移除。
+# 依赖环境：Makefile DEPENDS 为 dnsmasq-full/bash/curl/ca-bundle/ip-full/
+# ruby/ruby-yaml/kmod-tun/unzip；fw4（LEDE master 默认防火墙）下包内 config
+# 块还会自动选 kmod-nft-tproxy/kmod-inet-diag/luci-compat/dnsmasq_full_nftset，
+# 这里把编译期无法自动解析补救的核心项显式钉死，避免 defconfig 静默丢弃。
+CONFIG_PACKAGE_luci-app-openclash=y
+CONFIG_PACKAGE_curl=y
+CONFIG_PACKAGE_ruby=y
+CONFIG_PACKAGE_ruby-yaml=y
+CONFIG_PACKAGE_kmod-tun=y
+CONFIG_PACKAGE_kmod-inet-diag=y
+CONFIG_PACKAGE_kmod-nft-tproxy=y
 CONFIG_PACKAGE_luci-app-alist=y
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-vsftpd=y
@@ -166,6 +174,9 @@ CONFIG_PACKAGE_mt7922bt-firmware=y
 # CONFIG_PACKAGE_vlmcsd is not set
 # CONFIG_PACKAGE_luci-app-turboacc is not set
 # CONFIG_PACKAGE_luci-app-mia is not set
+# PassWall2 / SSR Plus+ 已移除，改用 OpenClash（仅作文档记录）
+# CONFIG_PACKAGE_luci-app-passwall2 is not set
+# CONFIG_PACKAGE_luci-app-ssr-plus is not set
 
 # 恢复模式（failsafe/preinit）IP 与 LAN 默认 IP 同网段，便于救砖
 # （这三个值只影响按住 reset 进恢复模式时的临时地址，不影响正常运行 IP）
