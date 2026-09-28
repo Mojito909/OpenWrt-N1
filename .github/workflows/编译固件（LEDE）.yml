@@ -174,9 +174,11 @@ jobs:
         grep -E 'CONFIG_PACKAGE_(luci-app-fchomo|nikki|strongswan-mod-updown|kmod-qca-nss-ecm)' .config || echo "(上述包均未出现在 .config)"
         grep -E 'CONFIG_PACKAGE_(luci-app-adguardhome|adguardhome|luci-app-alist|alist|luci-app-openclash|luci-app-amlogic|luci-app-ttyd|ttyd|luci-i18n-ttyd-zh-cn)=' .config || true
         ./scripts/feeds search luci-app-openclash || true
-        # OpenClash 依赖若解析失败，defconfig 会把该符号静默丢弃（固件照常出包
-        # 但没有代理插件），这里必须硬失败
-        grep -q '^CONFIG_PACKAGE_luci-app-openclash=y' .config || { echo "ERROR: luci-app-openclash 未进入 .config（包未挂载或依赖解析失败），请检查 small feed 与依赖环境"; exit 1; }
+        # 关键插件若包未挂载/克隆失败/依赖解析失败，defconfig 会把 =y 静默丢弃
+        # （固件照常出包但插件"消失"），这里必须硬失败
+        for pkg in luci-app-openclash luci-app-adguardhome adguardhome luci-app-wechatpush luci-app-gost; do
+          grep -q "^CONFIG_PACKAGE_${pkg}=y" .config || { echo "ERROR: ${pkg} 未进入 .config，请检查对应 feed/克隆与依赖"; exit 1; }
+        done
         echo "===== 编译目标校验 (.config) ====="
         grep -E '^CONFIG_TARGET|^CONFIG_LINUX_' .config | head -n 50 || true
         grep -Eq '^CONFIG_TARGET_(armvirt|armsr)=y' .config || { echo "ERROR: .config 未生效或目标错误（期望 ARM 目标：armvirt/armsr），请检查配置加载步骤。"; exit 1; }

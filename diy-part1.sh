@@ -15,10 +15,11 @@
 
 # 添加feed源
 echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
-# small 提供 sing-box（homeproxy 依赖）等代理核心。PassWall/PassWall2/SSR Plus+
-# 虽已不再启用，但核心源必须保留，否则 homeproxy 的 sing-box 依赖无法解析
-# （package/install 阶段直接 Error 255）。用它替换 passwall_packages，
-# 避免两源并存造成 17 个同名包重复定义（opkg Error 255 的来源）。
+# small 提供 luci-app-openclash（与 vernesong master 同版同步）及代理核心。
+# PassWall/PassWall2/SSR Plus+ 虽已不再启用，但 small 必须保留，否则 OpenClash
+# 本体无法挂载、代理核心依赖无法解析（package/install 阶段直接 Error 255）。
+# 用它替换 passwall_packages，避免两源并存造成 17 个同名包重复定义
+# （opkg Error 255 的来源）。
 echo 'src-git small https://github.com/kenzok8/small' >> feeds.conf.default
 
 

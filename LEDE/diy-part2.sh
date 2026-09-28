@@ -25,20 +25,22 @@ sed -i "s|OpenWrt |LEDE Build $(TZ=UTC-8 date '+%Y.%m.%d') @ OpenWrt |g" package
 # 修复软件源URL替换
 sed -i 's#openwrt.proxy.ustclug.org#mirrors.bfsu.edu.cn/openwrt#g' package/lean/default-settings/files/zzz-default-settings
 
-# 修改默认IP地址（按需求 192.168.31.10）
+# 修改默认IP地址（按需求 192.168.31.10）与主机名（LEDE -> OpenWrt-N1）
 sed -i 's/192.168.1.1/192.168.31.10/g' package/base-files/files/bin/config_generate
-# 双保险：armsr 镜像的默认网络配置存在被 flippy/ophub 镜像层覆盖的先例，
-# 再用 first-boot uci-defaults 强制指定一次，两种生成路径都会落到目标 IP
+sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
+# 双保险：config_generate 的 sed 只覆盖首装生成路径；保留配置升级（晶晨宝盒）
+# 会沿用旧 /etc/config/system，IP 与主机名都因此报过"没生效"。用 first-boot
+# uci-defaults 在每次新 rootfs 首次启动时再强制指定一次，两条路径都收敛
 mkdir -p package/base-files/files/etc/uci-defaults
-cat > package/base-files/files/etc/uci-defaults/99-lan-ip <<'EOF'
+cat > package/base-files/files/etc/uci-defaults/99-n1-defaults <<'EOF'
 uci set network.lan.ipaddr='192.168.31.10'
+uci set system.@system[0].hostname='OpenWrt-N1'
 uci commit network
+uci commit system
 EOF
 # 构建日志验证：补丁必须命中 config_generate，否则后续流程没有意义
 grep -n "192.168.31.10" package/base-files/files/bin/config_generate || { echo "错误：IP 补丁未命中 config_generate，请检查上游改动"; exit 1; }
-
-# 修改系统主机名 (LEDE -> OpenWrt-N1)
-sed -i 's/LEDE/OpenWrt-N1/g' package/base-files/files/bin/config_generate
+grep -q "hostname='OpenWrt-N1'" package/base-files/files/bin/config_generate || { echo "错误：主机名补丁未命中 config_generate，请检查上游改动"; exit 1; }
 
 # 修改Samba配置（允许root访问）
 sed -i 's/invalid users = root/#invalid users = root/g' feeds/packages/net/samba4/files/smb.conf.template
@@ -86,14 +88,32 @@ sed -i 's/<a href=\"https:\/\/github.com\/coolsnowwolf\/luci\">/<a>/g' feeds/luc
 # 在线用户
 git clone --depth=1 https://github.com/danchexiaoyang/luci-app-onliner.git package/luci-app-onliner
 
-# 通知插件
-git clone https://github.com/tty228/luci-app-serverchan.git package/luci-app-serverchan
-# tty228 仓库的 PKG_NAME 就是 luci-app-wechatpush（目录名叫 serverchan）。凡其他来源
-# 也提供同名包（openwrt-23.05/25.12 在 luci feed、luci@master 在 kenzok8 源），都会
-# 生成两份同名 ipk 导致 package/install 阶段 opkg 冲突（Error 255）。保留本地 clone
-# 版，两个来源的挂载副本都清掉。
+# 通知插件（微信推送）
+# 官方 README 指定编译用 openwrt-18.06 分支（Lua 控制器形态）。master 分支是
+# menu.d/ucode 形态，本构建的 luci@master 属 Lua dispatcher、不读 menu.d——
+# 装上后插件在、菜单不出现，这正是盒子上"微信推送消失"的根因（与晶晨宝盒
+# main 分支的教训相同）。18.06 分支的 PKG_NAME 是 luci-app-serverchan，改回
+# luci-app-wechatpush 以对齐 .config/workflow 硬校验/同名去重逻辑。
+rm -rf package/luci-app-serverchan package/luci-app-wechatpush
+git clone --depth=1 -b openwrt-18.06 https://github.com/tty228/luci-app-wechatpush.git package/luci-app-wechatpush
+sed -i 's/^PKG_NAME:=luci-app-serverchan$/PKG_NAME:=luci-app-wechatpush/' package/luci-app-wechatpush/Makefile
+[ -f package/luci-app-wechatpush/Makefile ] || { echo "错误：luci-app-wechatpush（serverchan 18.06 分支）克隆失败，插件将缺失"; exit 1; }
+grep -q '^PKG_NAME:=luci-app-wechatpush$' package/luci-app-wechatpush/Makefile || { echo "错误：wechatpush PKG_NAME 改名未命中，.config 的 luci-app-wechatpush 将被 defconfig 静默丢弃"; exit 1; }
+# 凡其他来源也提供同名包（openwrt-23.05/25.12 在 luci feed、luci@master 在
+# kenzok8 源），都会生成两份同名 ipk 导致 package/install 阶段 opkg 冲突
+# （Error 255）。保留本地 clone 版，两个来源的挂载副本都清掉。
 rm -rf package/feeds/luci/luci-app-wechatpush
 rm -rf package/feeds/kenzo/luci-app-wechatpush
+
+# Dockerman：luci feed 版的 action_events() 对没有 Actor 字段的 Docker 事件
+# 裸取 v.Actor.Attributes（dockerman.lua:190 "attempt to index field 'Actor'"），
+# 事件页直接 500。kenzo 源的 v0.5.26 已逐字段加防护并持续维护。feeds install
+# 首源优先（luci 排在 kenzo 前）才会装到旧版，这里删掉 luci 挂载、用 feeds
+# update 已克隆到本地的 kenzo 源码建本地副本（本地 package/ 优先级最高）。
+rm -rf package/feeds/luci/luci-app-dockerman
+rm -rf package/luci-app-dockerman
+cp -a feeds/kenzo/luci-app-dockerman package/luci-app-dockerman
+[ -f package/luci-app-dockerman/Makefile ] || { echo "错误：dockerman 替换失败，feeds/kenzo/luci-app-dockerman 不存在，请检查 feeds update 步骤"; exit 1; }
 
 # 晶晨宝盒
 rm -rf package/custom/luci-app-amlogic
@@ -106,20 +126,24 @@ rm -rf package/feeds/kenzo/luci-app-amlogic
 git clone -b lua https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 
 # AdGuardHome
+# kenzo 源也提供 luci-app-adguardhome（v1.0），与下面的 rufengsuixing 克隆
+# （v1.8，.config-lede 的 INCLUDE_binary 选项按它定义）同名冲突；不清掉挂载
+# 会双源并存——轻则旧版遮蔽，重则 defconfig 把符号解析坏静默丢弃（插件"消失"）
+rm -rf package/feeds/kenzo/luci-app-adguardhome
 rm -rf package/luci-app-adguardhome
 git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
-
-# HomeProxy
-rm -rf package/luci-app-homeproxy
-git clone https://github.com/immortalwrt/homeproxy package/luci-app-homeproxy
+[ -f package/luci-app-adguardhome/Makefile ] || { echo "错误：luci-app-adguardhome 克隆失败，插件将缺失"; exit 1; }
 
 # SmartDNS
 git clone --depth=1 -b lede https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
 git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
 
-# Alist
-rm -rf package/luci-app-alist
-git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
+# Alist：固件内置版停用（按需求）。内置版升级 Alist 必须重新编译整个固件，
+# 而 Alist 官方迭代很快；建议用 Docker 方式安装（固件已带 dockerman），
+# 升级只需拉取新镜像即可。需要恢复内置版时取消注释下面两行，并在
+# .config-lede 里同时打开 CONFIG_PACKAGE_luci-app-alist=y
+# rm -rf package/luci-app-alist
+# git clone --depth=1 https://github.com/sbwml/luci-app-alist package/alist
 
 # OpenClash（PassWall2/SSR Plus+ 移除后的替代）：small 源自带，且与 vernesong
 # master 同版同步（0.47.156），feeds install -a 自动挂载为
@@ -146,10 +170,10 @@ sed -i 's|^function index()$|function index()\n\tlocal nixio = require "nixio"|'
 
 # ==================== 依赖修复 ====================
 
-# 修复 v2ray-geodata 依赖
-rm -rf feeds/packages/net/v2ray-geodata
+# v2ray-geodata：唯一有效来源是下方 MosDNS 段克隆的 sbwml 版（package/geodata）。
+# 旧版在此克隆的 package/v2ray-geodata 会被 MosDNS 段的 find 删除后重新克隆，
+# 属死代码，已移除；这里只摘掉 packages feed 的挂载避免同名双源
 rm -rf package/feeds/packages/v2ray-geodata
-git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
 # 修复循环依赖问题
 # 注：luci 插件在 feed 中的真实路径是 feeds/luci/applications/<app>/，
@@ -170,9 +194,6 @@ sed -i 's|select kmod-oaf|select kmod-oaf \&\& !PACKAGE_kmod-oaf|g' feeds/packag
 # golang版本修复
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
-
-# 修复 hostapd 报错
-cp -f "$GITHUB_WORKSPACE/scripts/011-fix-mbo-modules-build.patch" package/network/services/hostapd/patches/011-fix-mbo-modules-build.patch 2>/dev/null || true
 
 # 修复 armv8 设备 xfsprogs 报错
 sed -i 's/TARGET_CFLAGS.*/TARGET_CFLAGS += -DHAVE_MAP_SYNC -D_LARGEFILE64_SOURCE/g' feeds/packages/utils/xfsprogs/Makefile
@@ -224,15 +245,78 @@ sed -i '/msgstr/s/"带宽监控"/"监视"/g' feeds/luci/applications/luci-app-nl
 sed -i '/msgid "Reboot"/{n;s/msgstr "重启"/msgstr "重启设备"/;}' feeds/luci/modules/luci-base/po/zh-cn/base.po
 
 
+# ==================== 菜单排序 ====================
+# 【存储组 admin/nas】按需求：Aria2 -> 硬盘休眠 -> 网络共享 -> FTP服务器。
+# 当前 luci master 把 aria2/hd_idle/samba4 注册在 admin/services（上游动过
+# 分组，旧固件里它们在 nas），必须先把组搬回 admin/nas，否则三者会混进
+# 服务菜单。组内 order 钉死 60/61/62；FTP服务器（vsftpd）无 order，按
+# dispatcher 行为排最后，无需改动。
+sed -i 's/{"admin", "services", "aria2"}/{"admin", "nas", "aria2"}/' feeds/luci/applications/luci-app-aria2/luasrc/controller/aria2.lua
+sed -i 's/{"admin", "services", "hd_idle"}/{"admin", "nas", "hd_idle"}/' feeds/luci/applications/luci-app-hd-idle/luasrc/controller/hd_idle.lua
+sed -i 's/{"admin", "services", "samba4"}/{"admin", "nas", "samba4"}/' feeds/luci/applications/luci-app-samba4/luasrc/controller/samba4.lua
+sed -i 's/cbi("aria2"), _("Aria2 Settings"))/cbi("aria2"), _("Aria2 Settings"), 60)/' feeds/luci/applications/luci-app-aria2/luasrc/controller/aria2.lua
+sed -i 's/cbi("hd_idle"), _("HDD Idle"), 60)/cbi("hd_idle"), _("HDD Idle"), 61)/' feeds/luci/applications/luci-app-hd-idle/luasrc/controller/hd_idle.lua
+sed -i 's/cbi("samba4"), _("Network Shares"))\.dependent/cbi("samba4"), _("Network Shares"), 62).dependent/' feeds/luci/applications/luci-app-samba4/luasrc/controller/samba4.lua
+
+# 【服务组 admin/services】按需求：UPnP -> Frp穿透 -> 网络唤醒 -> 微信推送
+# -> AdGuard -> 阿里DDNS -> SmartDNS -> OpenClash -> DNS过滤器。上游各应用的
+# order 交错（upnp 无序号、dnsfilter=9、openclash=50、aliddns=58、smartdns=60、
+# wechatpush=30、adguardhome=10、wol=90、frpc=100），顺序随版本漂移，这里
+# 全部显式钉死 10~18。Gost=100 等不在本需求内，按各自 order 落位（在本组
+# 9 项之后）。
+sed -i 's/cbi("upnp\/upnp"), _("UPnP"))/cbi("upnp\/upnp"), _("UPnP"), 10)/' feeds/luci/applications/luci-app-upnp/luasrc/controller/upnp.lua
+sed -i 's/cbi("frp\/basic"), _("Frp Setting"), 100)/cbi("frp\/basic"), _("Frp Setting"), 11)/' feeds/luci/applications/luci-app-frpc/luasrc/controller/frp.lua
+sed -i 's/form("wol"), _("Wake on LAN"), 90)/form("wol"), _("Wake on LAN"), 12)/' feeds/luci/applications/luci-app-wol/luasrc/controller/wol.lua
+sed -i 's/_("微信推送"), 30)/_("微信推送"), 13)/' package/luci-app-wechatpush/luasrc/controller/serverchan.lua
+sed -i 's/_("AdGuard"), 10)/_("AdGuard"), 14)/' package/luci-app-adguardhome/luasrc/controller/adguardhome.lua
+sed -i 's/cbi("aliddns"), _("AliDDNS"), 58)/cbi("aliddns"), _("AliDDNS"), 15)/' feeds/kenzo/luci-app-aliddns/luasrc/controller/aliddns.lua
+sed -i 's/cbi("smartdns\/smartdns"), _("SmartDNS"), 60)/cbi("smartdns\/smartdns"), _("SmartDNS"), 16)/' package/luci-app-smartdns/luasrc/controller/smartdns.lua
+sed -i 's/alias("admin", "services", "openclash", "client"), _("OpenClash"), 50)/alias("admin", "services", "openclash", "client"), _("OpenClash"), 17)/' feeds/small/luci-app-openclash/luasrc/controller/openclash.lua
+sed -i 's/_("DNS Filter"), 9)/_("DNS Filter"), 18)/' feeds/kenzo/luci-app-dnsfilter/luasrc/controller/dnsfilter.lua
+
+# 【系统组 admin/system】按需求：系统 -> 终端 -> 管理权 -> 软件包。上游：
+# system=1、admin=2、packages(ttyd 的 terminal.lua 也是 10，与软件包撞号靠
+# 名字兜底)、startup=45 起。终端提前到 2，管理权/软件包顺延 3/4；启动项/
+# 计划任务/挂载点等(45+)保持原值，自然排在其后。终端控制器标题是英文
+# "TTYD Terminal"（po 翻译为 TTYD 终端、再被改名段转成 终端），锚定用英文。
+sed -i 's/_("TTYD Terminal"), 10)/_("TTYD Terminal"), 2)/' feeds/luci/applications/luci-app-ttyd/luasrc/controller/terminal.lua
+sed -i 's/cbi("admin_system\/admin"), _("Administration"), 2)/cbi("admin_system\/admin"), _("Administration"), 3)/' feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/system.lua
+sed -i 's/action_packages"), _("Software"), 10)/action_packages"), _("Software"), 4)/' feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/system.lua
+
+# DNS过滤器标题去空格：显示名来自 zh-cn po 的 msgstr "DNS 过滤器"
+sed -i 's/msgstr "DNS 过滤器"/msgstr "DNS过滤器"/' feeds/kenzo/luci-app-dnsfilter/po/zh-cn/dnsfilter.po
+
+# 构建日志验证：所有菜单补丁必须全部命中
+grep -q '{"admin", "nas", "aria2"}' feeds/luci/applications/luci-app-aria2/luasrc/controller/aria2.lua && \
+grep -q '_("Aria2 Settings"), 60)' feeds/luci/applications/luci-app-aria2/luasrc/controller/aria2.lua && \
+grep -q '_("HDD Idle"), 61)' feeds/luci/applications/luci-app-hd-idle/luasrc/controller/hd_idle.lua && \
+grep -q '_("Network Shares"), 62)' feeds/luci/applications/luci-app-samba4/luasrc/controller/samba4.lua && \
+grep -q '_("UPnP"), 10)' feeds/luci/applications/luci-app-upnp/luasrc/controller/upnp.lua && \
+grep -q '_("Frp Setting"), 11)' feeds/luci/applications/luci-app-frpc/luasrc/controller/frp.lua && \
+grep -q '_("Wake on LAN"), 12)' feeds/luci/applications/luci-app-wol/luasrc/controller/wol.lua && \
+grep -q '_("微信推送"), 13)' package/luci-app-wechatpush/luasrc/controller/serverchan.lua && \
+grep -q '_("AdGuard"), 14)' package/luci-app-adguardhome/luasrc/controller/adguardhome.lua && \
+grep -q '_("AliDDNS"), 15)' feeds/kenzo/luci-app-aliddns/luasrc/controller/aliddns.lua && \
+grep -q '_("SmartDNS"), 16)' package/luci-app-smartdns/luasrc/controller/smartdns.lua && \
+grep -q '_("OpenClash"), 17)' feeds/small/luci-app-openclash/luasrc/controller/openclash.lua && \
+grep -q '_("DNS Filter"), 18)' feeds/kenzo/luci-app-dnsfilter/luasrc/controller/dnsfilter.lua && \
+grep -q 'cbi("admin_system/system"), _("System"), 1)' feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/system.lua && \
+grep -q '_("TTYD Terminal"), 2)' feeds/luci/applications/luci-app-ttyd/luasrc/controller/terminal.lua && \
+grep -q '_("Administration"), 3)' feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/system.lua && \
+grep -q '_("Software"), 4)' feeds/luci/modules/luci-mod-admin-full/luasrc/controller/admin/system.lua && \
+grep -q 'msgstr "DNS过滤器"' feeds/kenzo/luci-app-dnsfilter/po/zh-cn/dnsfilter.po || \
+{ echo "错误：菜单排序/标题补丁未命中，请检查对应 feed/克隆的上游改动"; exit 1; }
+
+
 # ==================== 清理删除 ====================
 
 # 清除 coremark 定时任务
 sed -i '/\* \* \* \/etc\/coremark.sh/d' feeds/packages/utils/coremark/*
 
-# 删除冲突/问题插件
+# 删除冲突/问题插件。qBittorrent 系列上游仍在（luci feed 的 luci-app-qbittorrent
+# + packages 源的 qBittorrent/qBittorrent-static，2026-09 核实 200），编译重且
+# .config 未选，保留删除行兜底防被依赖链拉入。luci-app-mia 已从上游消失
+# （404），其删除行属空操作，已移除。
 rm -rf feeds/luci/applications/luci-app-qbittorrent
 rm -rf feeds/packages/net/qBittorrent-static
 rm -rf feeds/packages/net/qBittorrent
-rm -rf feeds/luci/applications/luci-app-mia
-rm -rf package/feeds/luci/luci-app-mia
-rm -rf package/luci-app-mia
