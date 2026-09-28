@@ -96,9 +96,13 @@ git clone --depth=1 https://github.com/danchexiaoyang/luci-app-onliner.git packa
 # luci-app-wechatpush 以对齐 .config/workflow 硬校验/同名去重逻辑。
 rm -rf package/luci-app-serverchan package/luci-app-wechatpush
 git clone --depth=1 -b openwrt-18.06 https://github.com/tty228/luci-app-wechatpush.git package/luci-app-wechatpush
-sed -i 's/^PKG_NAME:=luci-app-serverchan$/PKG_NAME:=luci-app-wechatpush/' package/luci-app-wechatpush/Makefile
 [ -f package/luci-app-wechatpush/Makefile ] || { echo "错误：luci-app-wechatpush（serverchan 18.06 分支）克隆失败，插件将缺失"; exit 1; }
-grep -q '^PKG_NAME:=luci-app-wechatpush$' package/luci-app-wechatpush/Makefile || { echo "错误：wechatpush PKG_NAME 改名未命中，.config 的 luci-app-wechatpush 将被 defconfig 静默丢弃"; exit 1; }
+# 18.06 分支的 Makefile/uci 配置是 CRLF 行尾：先剥掉 \r——否则 PKG_VERSION
+# 等值携带 \r 破坏下载与编译，改名 sed 也永远锚不上（^...$ 匹配不到 \r）。
+# init.d/控制器本身是 LF，无需处理；CRLF 的 api/*.json 属空白差异，无害。
+sed -i 's/\r$//' package/luci-app-wechatpush/Makefile package/luci-app-wechatpush/root/etc/config/serverchan
+sed -i 's/PKG_NAME:=luci-app-serverchan/PKG_NAME:=luci-app-wechatpush/' package/luci-app-wechatpush/Makefile
+grep -q 'PKG_NAME:=luci-app-wechatpush' package/luci-app-wechatpush/Makefile || { echo "错误：wechatpush PKG_NAME 改名未命中，.config 的 luci-app-wechatpush 将被 defconfig 静默丢弃"; exit 1; }
 # 凡其他来源也提供同名包（openwrt-23.05/25.12 在 luci feed、luci@master 在
 # kenzok8 源），都会生成两份同名 ipk 导致 package/install 阶段 opkg 冲突
 # （Error 255）。保留本地 clone 版，两个来源的挂载副本都清掉。

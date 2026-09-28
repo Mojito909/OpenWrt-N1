@@ -152,6 +152,24 @@ CONFIG_PACKAGE_kmod-nls-cp437=y
 CONFIG_PACKAGE_kmod-nls-iso8859-1=y
 CONFIG_PACKAGE_kmod-nls-utf8=y
 CONFIG_PACKAGE_kmod-tcp-bbr=y
+# Docker 网络栈：dockerd 上游 DEPENDS 只声明 kmod-veth，缺 bridge（docker0
+# 网桥必需，本精简固件无 br-lan 顺带安装，缺失时报 "adding interface veth
+# to bridge docker0 failed: Device does not exist"）/br-netfilter/macvlan
+CONFIG_PACKAGE_kmod-bridge=y
+CONFIG_PACKAGE_kmod-veth=y
+CONFIG_PACKAGE_kmod-br-netfilter=y
+CONFIG_PACKAGE_kmod-macvlan=y
+# 外接存储/文件系统：armsr 目标默认不带 USB 存储驱动与 btrfs/exfat（其
+# DEFAULT_PACKAGES 仅 mkf2fs/e2fsprogs/blkid/kmod-fs-vfat）。kmod =y 的实际
+# 价值是 rootfs 的 /etc/modules.d 自动加载清单会保留过 flippy 打包（模块
+# 本体由 flippy 内核提供）。缺 kmod-usb-storage-uas 时 USB3 硬盘走 BOT 协议
+# 速度减半；btrfs-progs 用户态已是 =y 而内核模块缺失，btrfs 盘无法挂载
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-usb-storage-uas=y
+CONFIG_PACKAGE_kmod-usb3=y
+CONFIG_PACKAGE_kmod-usb2=y
+CONFIG_PACKAGE_kmod-fs-btrfs=y
+CONFIG_PACKAGE_kmod-fs-exfat=y
 
 # 无线驱动 (仅补充)
 CONFIG_DRIVER_11AX_SUPPORT=y
