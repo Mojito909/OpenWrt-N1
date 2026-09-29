@@ -272,7 +272,7 @@ sed -i 's/cbi("upnp\/upnp"), _("UPnP"))/cbi("upnp\/upnp"), _("UPnP"), 10)/' feed
 sed -i 's/cbi("frp\/basic"), _("Frp Setting"), 100)/cbi("frp\/basic"), _("Frp Setting"), 11)/' feeds/luci/applications/luci-app-frpc/luasrc/controller/frp.lua
 sed -i 's/form("wol"), _("Wake on LAN"), 90)/form("wol"), _("Wake on LAN"), 12)/' feeds/luci/applications/luci-app-wol/luasrc/controller/wol.lua
 sed -i 's/_("微信推送"), 30)/_("微信推送"), 13)/' package/luci-app-wechatpush/luasrc/controller/serverchan.lua
-sed -i 's/_("AdGuard"), 10)/_("AdGuard"), 14)/' package/luci-app-adguardhome/luasrc/controller/adguardhome.lua
+sed -i 's/_("AdGuard"), 10)/_("AdGuard"), 14)/' package/luci-app-adguardhome/luasrc/controller/AdGuardHome.lua
 sed -i 's/cbi("aliddns"), _("AliDDNS"), 58)/cbi("aliddns"), _("AliDDNS"), 15)/' feeds/kenzo/luci-app-aliddns/luasrc/controller/aliddns.lua
 sed -i 's/cbi("smartdns\/smartdns"), _("SmartDNS"), 60)/cbi("smartdns\/smartdns"), _("SmartDNS"), 16)/' package/luci-app-smartdns/luasrc/controller/smartdns.lua
 sed -i 's/alias("admin", "services", "openclash", "client"), _("OpenClash"), 50)/alias("admin", "services", "openclash", "client"), _("OpenClash"), 17)/' feeds/small/luci-app-openclash/luasrc/controller/openclash.lua
@@ -299,7 +299,7 @@ grep -q '_("UPnP"), 10)' feeds/luci/applications/luci-app-upnp/luasrc/controller
 grep -q '_("Frp Setting"), 11)' feeds/luci/applications/luci-app-frpc/luasrc/controller/frp.lua && \
 grep -q '_("Wake on LAN"), 12)' feeds/luci/applications/luci-app-wol/luasrc/controller/wol.lua && \
 grep -q '_("微信推送"), 13)' package/luci-app-wechatpush/luasrc/controller/serverchan.lua && \
-grep -q '_("AdGuard"), 14)' package/luci-app-adguardhome/luasrc/controller/adguardhome.lua && \
+grep -q '_("AdGuard"), 14)' package/luci-app-adguardhome/luasrc/controller/AdGuardHome.lua && \
 grep -q '_("AliDDNS"), 15)' feeds/kenzo/luci-app-aliddns/luasrc/controller/aliddns.lua && \
 grep -q '_("SmartDNS"), 16)' package/luci-app-smartdns/luasrc/controller/smartdns.lua && \
 grep -q '_("OpenClash"), 17)' feeds/small/luci-app-openclash/luasrc/controller/openclash.lua && \
