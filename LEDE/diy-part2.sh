@@ -138,9 +138,19 @@ rm -rf package/luci-app-adguardhome
 git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
 [ -f package/luci-app-adguardhome/Makefile ] || { echo "错误：luci-app-adguardhome 克隆失败，插件将缺失"; exit 1; }
 
-# SmartDNS
+# SmartDNS：luci feed（及 kenzo 源）也提供 luci-app-smartdns 与 smartdns
+# 二进制包，与本地 pymumu lede 分支克隆同名。不清掉挂载时构建采用 feed 副本，
+# 其控制器 order 未被菜单排序段改动，SmartDNS 会沉到服务菜单末尾（实测）；
+# 二进制版本也可能与克隆版不一致
+rm -rf package/feeds/luci/luci-app-smartdns package/feeds/kenzo/luci-app-smartdns
+rm -rf package/feeds/kenzo/smartdns
 git clone --depth=1 -b lede https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
 git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
+[ -f package/luci-app-smartdns/Makefile ] || { echo "错误：luci-app-smartdns 克隆失败，插件将缺失"; exit 1; }
+# 挂载必须确实消失，否则构建仍取 feed 副本而菜单排序的 grep 链只查本地克隆，查不出这种错位
+for p in package/feeds/luci/luci-app-smartdns package/feeds/kenzo/luci-app-smartdns package/feeds/kenzo/smartdns; do
+  [ -e "$p" ] && { echo "错误：$p 挂载未清除，SmartDNS 将采用 feed 副本（菜单沉底/版本漂移）"; exit 1; }
+done
 
 # Alist：固件内置版停用（按需求）。内置版升级 Alist 必须重新编译整个固件，
 # 而 Alist 官方迭代很快；建议用 Docker 方式安装（固件已带 dockerman），
